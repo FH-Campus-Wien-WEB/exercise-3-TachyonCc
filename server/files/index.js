@@ -1,92 +1,141 @@
-import { ElementBuilder, ParentChildBuilder } from "./builders.js";
-
-class ParagraphBuilder extends ParentChildBuilder {
-  constructor() {
-    super("p", "span");
-  }
-}
-
-class ListBuilder extends ParentChildBuilder {
-  constructor() {
-    super("ul", "li");
-  }
-}
-
-function formatRuntime(runtime) {
-  const hours = Math.trunc(runtime / 60);
-  const minutes = runtime % 60;
-  return hours + "h " + minutes + "m";
-}
-
-function appendMovie(movie, element) {
-  new ElementBuilder("article").id(movie.imdbID)
-          .append(new ElementBuilder("img").with("src", movie.Poster))
-          .append(new ElementBuilder("h1").text(movie.Title))
-          .append(new ElementBuilder("p")
-              .append(new ElementBuilder("button").text("Edit")
-                    .listener("click", () => location.href = "edit.html?imdbID=" + movie.imdbID)))
-          .append(new ParagraphBuilder().items(
-              "Runtime " + formatRuntime(movie.Runtime),
-              "\u2022",
-              "Released on " +
-                new Date(movie.Released).toLocaleDateString("en-US")))
-          .append(new ParagraphBuilder().childClass("genre").items(movie.Genres))
-          .append(new ElementBuilder("p").text(movie.Plot))
-          .append(new ElementBuilder("h2").pluralizedText("Director", movie.Directors))
-          .append(new ListBuilder().items(movie.Directors))
-          .append(new ElementBuilder("h2").pluralizedText("Writer", movie.Writers))
-          .append(new ListBuilder().items(movie.Writers))
-          .append(new ElementBuilder("h2").pluralizedText("Actor", movie.Actors))
-          .append(new ListBuilder().items(movie.Actors))
-          .appendTo(element);
-}
-
 function loadMovies(genre) {
-  const xhr = new XMLHttpRequest();
-  xhr.onload = function () {
     const mainElement = document.querySelector("main");
+    mainElement.innerHTML = "";
 
-    while (mainElement.childElementCount > 0) {
-      mainElement.firstChild.remove()
+    const xhr = new XMLHttpRequest();
+
+    xhr.onload = function () {
+        if (xhr.status == 200) {
+            const movies = JSON.parse(xhr.responseText);
+
+            for (const movie of movies) {
+                const article = document.createElement("article");
+                article.id = movie.imdbID;
+
+                const title = document.createElement("h2");
+                title.textContent = movie.Title;
+
+                const poster = document.createElement("img");
+                poster.src = movie.Poster;
+                poster.alt = movie.Title + " poster";
+
+                const released = document.createElement("p");
+                released.innerHTML = "<strong>Released:</strong> " + movie.Released;
+
+                const runtime = document.createElement("p");
+                runtime.innerHTML = "<strong>Runtime:</strong> " + movie.Runtime + " min";
+
+                const genres = document.createElement("p");
+                genres.innerHTML = "<strong>Genres:</strong> ";
+                for (const genreName of movie.Genres) {
+                    const genreTag = document.createElement("span");
+                    genreTag.className = "genre";
+                    genreTag.textContent = genreName;
+                    genres.appendChild(genreTag);
+                }
+
+                const directors = document.createElement("p");
+                directors.innerHTML =
+                    "<strong>Directors:</strong> " + movie.Directors.join(", ");
+
+                const writers = document.createElement("p");
+                writers.innerHTML =
+                    "<strong>Writers:</strong> " + movie.Writers.join(", ");
+
+                const actors = document.createElement("p");
+                actors.innerHTML =
+                    "<strong>Actors:</strong> " + movie.Actors.join(", ");
+
+                const plot = document.createElement("p");
+                plot.innerHTML = "<strong>Plot:</strong> " + movie.Plot;
+
+                const metascore = document.createElement("p");
+                metascore.innerHTML =
+                    "<strong>Metascore:</strong> " + movie.Metascore;
+
+                const imdbRating = document.createElement("p");
+                imdbRating.innerHTML =
+                    "<strong>IMDb Rating:</strong> " + movie.imdbRating;
+
+                const editButton = document.createElement("button");
+                editButton.textContent = "Edit";
+                editButton.onclick = function () {
+                    location.href = "edit.html?imdbID=" + movie.imdbID;
+                };
+
+                article.appendChild(title);
+                article.appendChild(poster);
+                article.appendChild(released);
+                article.appendChild(runtime);
+                article.appendChild(genres);
+                article.appendChild(directors);
+                article.appendChild(writers);
+                article.appendChild(actors);
+                article.appendChild(plot);
+                article.appendChild(metascore);
+                article.appendChild(imdbRating);
+                article.appendChild(editButton);
+
+                mainElement.appendChild(article);
+            }
+        } else {
+            mainElement.append(
+                "Daten konnten nicht geladen werden, Status " +
+                xhr.status +
+                " - " +
+                xhr.statusText
+            );
+        }
+    };
+
+    let url = "/movies";
+
+    if (genre) {
+        const params = new URLSearchParams();
+        params.set("genre", genre);
+        url += "?" + params.toString();
     }
 
-    if (xhr.status === 200) {
-      const movies = JSON.parse(xhr.responseText)
-      for (const movie of movies) {
-        appendMovie(movie, mainElement)
-      }
-    } else {
-      mainElement.append(`Daten konnten nicht geladen werden, Status ${xhr.status} - ${xhr.statusText}`);
-    }
-  }
-
-  const url = new URL("/movies", location.href)
-  /* Task 1.4. Add query parameter to the url if a genre is given */
-
-  xhr.open("GET", url)
-  xhr.send()
+    xhr.open("GET", url);
+    xhr.send();
 }
 
 window.onload = function () {
-  const xhr = new XMLHttpRequest();
-  xhr.onload = function () {
-    const listElement = document.querySelector("nav>ul");
+    const navElement = document.querySelector("nav");
 
-    if (xhr.status === 200) {
-      /* Task 1.3. Add the genre buttons to the listElement and 
-         initialize them with a click handler that calls the 
-         loadMovies(...) function above. */
-      const genres = JSON.parse(xhr.responseText);
+    const xhr = new XMLHttpRequest();
 
-      /* When a first button exists, we click it to load all movies. */
-      const firstButton = document.querySelector("nav button");
-      if (firstButton) {
-        firstButton.click();
-      }
-    } else {
-      document.querySelector("body").append(`Daten konnten nicht geladen werden, Status ${xhr.status} - ${xhr.statusText}`);
-    }
-  };
-  xhr.open("GET", "/genres");
-  xhr.send();
+    xhr.onload = function () {
+        if (xhr.status == 200) {
+            const genres = JSON.parse(xhr.responseText);
+
+            const allButton = document.createElement("button");
+            allButton.textContent = "All";
+            allButton.onclick = function () {
+                loadMovies();
+            };
+            navElement.appendChild(allButton);
+
+            for (const genre of genres) {
+                const button = document.createElement("button");
+                button.textContent = genre;
+                button.onclick = function () {
+                    loadMovies(genre);
+                };
+                navElement.appendChild(button);
+            }
+
+            navElement.querySelector("button").click();
+        } else {
+            navElement.append(
+                "Genres konnten nicht geladen werden, Status " +
+                xhr.status +
+                " - " +
+                xhr.statusText
+            );
+        }
+    };
+
+    xhr.open("GET", "/genres");
+    xhr.send();
 };

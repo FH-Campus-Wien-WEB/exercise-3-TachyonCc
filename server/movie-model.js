@@ -88,5 +88,6 @@ module.exports = {
       "https://m.media-amazon.com/images/M/MV5BZjBhYzgyY2YtMTBhZS00NWIwLWIyYTgtMzhhYmFhZDNkMTQxXkEyXkFqcGdeQXVyNTE1NjY5Mg@@._V1_SX300.jpg",
     Metascore: 0.1,
     imdbRating: 8.0,
-  }
+    }
+
 };

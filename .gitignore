@@ -1,1 +1,22 @@
+# Node modules (always ignore)
 node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment variables (if you ever add them)
+.env
+
+# IDE folders
+.vs/
+.vscode/
+
+# Optional: coverage / build outputs
+coverage/
+dist/

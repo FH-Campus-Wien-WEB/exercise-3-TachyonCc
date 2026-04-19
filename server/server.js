@@ -1,58 +1,71 @@
 const express = require('express');
 const path = require('path');
 const bodyParser = require('body-parser');
-const movieModel = require('./movie-model.js');
+const movies = require('./movie-model.js');
 
 const app = express();
 
-// Parse urlencoded bodies
-app.use(bodyParser.json()); 
+// Parse JSON bodies
+app.use(bodyParser.json());
 
 // Serve static content in directory 'files'
 app.use(express.static(path.join(__dirname, 'files')));
 
-/* Task 1.2: Add a GET /genres endpoint:
-   This endpoint returns a sorted array of all the genres of the movies
-   that are currently in the movie model.
-*/
-
-/* Task 1.4: Extend the GET /movies endpoint:
-   When a query parameter for a specific genre is given, 
-   return only movies that have the given genre
- */
+// GET all movies, optionally filtered by genre
 app.get('/movies', function (req, res) {
-  let movies = Object.values(movieModel)
-  res.send(movies);
-})
+    const genre = req.query.genre;
+    let movieList = Object.values(movies);
 
-// Configure a 'get' endpoint for a specific movie
+    if (genre) {
+        movieList = movieList.filter(function (movie) {
+            return movie.Genres.includes(genre);
+        });
+    }
+
+    res.json(movieList);
+});
+
+// GET one movie by imdbID
 app.get('/movies/:imdbID', function (req, res) {
-  const id = req.params.imdbID
-  const exists = id in movieModel
- 
-  if (exists) {
-    res.send(movieModel[id])
-  } else {
-    res.sendStatus(404)    
-  }
-})
+    const imdbID = req.params.imdbID;
+    const movie = movies[imdbID];
 
-app.put('/movies/:imdbID', function(req, res) {
+    if (movie) {
+        res.send(movie);
+    } else {
+        res.sendStatus(404);
+    }
+});
 
-  const id = req.params.imdbID
-  const exists = id in movieModel
+// PUT update/create movie
+app.put('/movies/:imdbID', function (req, res) {
+    const imdbID = req.params.imdbID;
+    const movie = req.body;
 
-  movieModel[req.params.imdbID] = req.body;
-  
-  if (!exists) {
-    res.status(201)
-    res.send(req.body)
-  } else {
-    res.sendStatus(200)
-  }
-  
-})
+    movie.imdbID = imdbID;
 
-app.listen(3000)
+    if (movies[imdbID]) {
+        movies[imdbID] = movie;
+        res.sendStatus(200);
+    } else {
+        movies[imdbID] = movie;
+        res.status(201).send(movie);
+    }
+});
 
-console.log("Server now listening on http://localhost:3000/")
+// GET all unique genres sorted alphabetically
+app.get('/genres', function (req, res) {
+    const genres = new Set();
+
+    for (const movie of Object.values(movies)) {
+        for (const genre of movie.Genres) {
+            genres.add(genre);
+        }
+    }
+
+    res.json(Array.from(genres).sort());
+});
+
+app.listen(3000, function () {
+    console.log("Server now listening on http://localhost:3000/");
+});
